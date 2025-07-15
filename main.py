@@ -70,11 +70,15 @@ def main():
                 st.dataframe(perf_df)
 
         case "index":
-            ticker_index = st.text_input("Ticker de l'Index")
-            if ticker_index:
-                index = Index(ticker_index)
-                st.subheader(f"Informations sur l'Index {ticker_index.upper()}")
-                st.write(index.afficher_info())
+        ticker_index = st.text_input("Ticker de l'Index")
+        if ticker_index:
+            index = Index(ticker_index)
+            st.subheader(f"Informations sur l'Index {ticker_index.upper()}")
+            st.write(index.afficher_infos())  # note le pluriel 'afficher_infos'
+        
+            fig = index.afficher_graphique()
+            if fig:
+                st.pyplot(fig)
 
         case "compare":
             port = st.session_state.portefeuille

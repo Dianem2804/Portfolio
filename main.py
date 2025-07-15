@@ -41,24 +41,24 @@ def main():
                 st.success(f"Portefeuille '{nom}' créé ✔️")
 
         case "manage_port":
-    port = st.session_state.portefeuille
-    if port is None:
-        st.warning("Créez d'abord un portefeuille dans l'onglet précédent.")
-    else:
-        actifs_ticker = st.text_input("Ticker de l'action")
-        op = st.selectbox("Opération", ["Ajouter", "Retirer"])
-        quantite = st.number_input("Quantité", min_value=1, step=1)
-        date_achat = None
-        if op == "Ajouter":
-            date_achat = st.date_input("Date d'achat", value=date.today())
-        if st.button("Valider") and actifs_ticker and quantite:
-            actifs = Actifs(actifs_ticker)
-            if op == "Ajouter":
-                port.ajouter_action(actifs, int(quantite), datetime.combine(date_achat, datetime.min.time()))
-                st.success("Actifs ajoutés au portefeuille ✅")
+            port = st.session_state.portefeuille
+            if port is None:
+                st.warning("Créez d'abord un portefeuille dans l'onglet précédent.")
             else:
-                port.retirer_action(actifs_ticker, int(quantite))
-                st.success("Actifs retirés du portefeuille 🗑️")
+                actifs_ticker = st.text_input("Ticker de l'action")
+                op = st.selectbox("Opération", ["Ajouter", "Retirer"])
+                quantite = st.number_input("Quantité", min_value=1, step=1)
+                date_achat = None
+                if op == "Ajouter":
+                    date_achat = st.date_input("Date d'achat", value=date.today())
+                if st.button("Valider") and actifs_ticker and quantite:
+                    actifs = Actifs(actifs_ticker)
+                    if op == "Ajouter":
+                        port.ajouter_action(actifs, int(quantite), datetime.combine(date_achat, datetime.min.time()))
+                        st.success("Actifs ajoutés au portefeuille ✅")
+                    else:
+                        port.retirer_action(actifs_ticker, int(quantite))
+                        st.success("Actifs retirés du portefeuille 🗑️")
 
 
         case "performance":

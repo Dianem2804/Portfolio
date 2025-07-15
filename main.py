@@ -1,6 +1,6 @@
 from classe_actifs import Actifs
 from classe_index import Index
-from classe_portefeuile import Portefeuille
+from classe_portefeuille import Portefeuille
 from datetime import datetime  
 import yfinance as yf
 

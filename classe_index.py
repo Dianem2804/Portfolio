@@ -2,6 +2,11 @@ import yfinance as yf
 import math
 from typing import List
 
+import yfinance as yf
+import math
+from typing import List
+from datetime import datetime
+
 class Index:
     def __init__(self, ticker: str):
         self.ticker = ticker
@@ -21,7 +26,11 @@ class Index:
             self.historique_dates = data.index.to_list()
             self.calculer_rendements()
         except Exception as e:
-            print(f"Erreur lors de l'initialisation des données : {e}")
+            # On évite print, on peut stocker une erreur ou la gérer différemment
+            self.nom = "Erreur chargement données"
+            self.historique_prix = []
+            self.historique_dates = []
+            self.historique_rendements = []
 
     def calculer_rendements(self):
         self.historique_rendements = []
@@ -76,38 +85,34 @@ class Index:
             if drawdown < max_dd:
                 max_dd = drawdown
         return abs(max_dd)
-    
+
     def get_rendement_depuis(self,date_debut):
         if isinstance(date_debut, str):
-            try : 
+            try:
                 date_debut = datetime.strptime(date_debut, "%Y-%m-%d")
-            except ValueError : 
-                print ("Format de date invale : {date_debut}. Utilisez 'YYYY-MM-DD'.")
-                return None 
-            
-        if not self.historique_dates or not self.historique_prix : 
-            print ("Pas de donées historiques disponibles.")
+            except ValueError:
+                return None
+
+        if not self.historique_dates or not self.historique_prix:
             return None
-        
+
         index_debut = None
-        for i, d in enumerate(self.historique_dates) :
-            if d is None : 
+        for i, d in enumerate(self.historique_dates):
+            if d is None:
                 continue
-            if d>= date_debut : 
-                index_debut = i 
+            if d >= date_debut:
+                index_debut = i
                 break
-        
-        if index_debut is None :
-            print (f"Aucune donnée dispo après la date {date_debut.date()}")
-            return None 
-        
+
+        if index_debut is None:
+            return None
+
         prix_debut = self.historique_prix[index_debut]
         prix_fin = self.historique_prix[-1]
-        
+
         if prix_debut == 0:
-            print ("Prix initial nul, rendement non défini.")
-            return None 
-        
+            return None
+
         rendement = (prix_fin / prix_debut) - 1
         return rendement
 
@@ -117,28 +122,14 @@ class Index:
         return (self.historique_prix[-1] / self.historique_prix[0]) - 1
 
     def afficher_infos(self):
-        print(f"Index/ETF : {self.nom} ({self.ticker})")
-        print(f"Période : {len(self.historique_prix)} jours")
-        print(f"Performance cumulée sur la période : {self.performance_cumulee() * 100:.2f}%")
-        print(f"Volatilité : {self.volatilite() * 100:.2f}%")
-        
-if __name__ == "__main__":
-    while True:
-        ticker = input("Entrer un ticker d'indice (ou 'exit' pour quitter) : ").upper()
-
-        if ticker == "EXIT":
-            print("Programme terminé.")
-            break
-        try:
-            info = yf.Ticker(ticker).info
-            if not info or info.get("regularMarketPrice") is None:
-                print("Ticker non existant.\n")
-            else:
-                indice = Index(ticker)
-                print(f"Variation jour : {indice.variation_jour():.2f}")
-                print(f"Variation jour (%) : {indice.variation_jour_pct():.2f}%")
-                print(f"Volatilité historique : {indice.calculer_vol_historique():.4f}")
-                print(f"Ratio de Sharpe : {indice.calculer_sharpe():.4f}")
-                print(f"Maximum Drawdown : {indice.maximum_drawdown():.2%}\n")
-        except Exception as e:
-            print(f"Erreur lors de la création de l'indice : {e}\n")
+        # Retourner un dict à afficher dans Streamlit
+        return {
+            "Index/ETF": f"{self.nom} ({self.ticker})",
+            "Période (jours)": len(self.historique_prix),
+            "Performance cumulée (%)": round(self.performance_cumulee() * 100, 2),
+            "Volatilité (%)": round(self.volatilite() * 100, 2),
+            "Variation jour": round(self.variation_jour(), 2),
+            "Variation jour (%)": round(self.variation_jour_pct(), 2),
+            "Ratio de Sharpe": round(self.calculer_sharpe(), 4),
+            "Maximum Drawdown (%)": round(self.maximum_drawdown() * 100, 2),
+        }

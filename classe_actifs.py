@@ -24,7 +24,18 @@ class Actifs:
         self.historique_rendements: List[float] = []
 
         self.initialiser_donnees()
-
+    def afficher_infos(self):
+        return {
+            "Ticker": self.ticker,
+            "Entreprise": self.nom_entreprise,
+            "Secteur": self.secteur,
+            "Prix aujourd'hui": self.prix_aujourdhui,
+            "Volume": self.volume,
+            "Market Cap": self.market_cap,
+            "Industrie": self.industrie,
+            "Valeur la + haute sur 52 semaines": self.high,
+            "Valeur la + basse sur 52 semaines": self.low,
+        }
     def initialiser_donnees(self):
         try:
             info = yf.Ticker(self.ticker)

@@ -4,25 +4,25 @@ from typing import List
 import pandas as pd
 import matplotlib.pyplot as plt
 
-#but du code : créer la classe actif, definir les  paramètres et les méthodes 
- import yfinance as yf
+#but du code : créer la classe actif, definir les  paramètres et les méthodes
+import yfinance as yf
 import math
-from typing import List, Optional
-import pandas as pd
+from typing import List
 
 class Actifs:
     def __init__(self, ticker: str, quantite: int = 0, taux_sans_risque: float = 0.02):
         self.ticker = ticker.upper()
         self.quantite = quantite
         self.taux_sans_risque = taux_sans_risque
+
         self.nom_entreprise = ""
-        self.prix_aujourdhui = 0.0
-        self.prix_hier = 0.0
-        self.historique_prix: List[float] = []
+        self.prix_aujourdhui = 0
+        self.prix_hier = 0
+        self.historique_prix = []
         self.secteur = ""
         self.industrie = ""
-        self.high = 0.0
-        self.low = 0.0
+        self.high = 0
+        self.low = 0
         self.volume = 0
         self.market_cap = 0
         self.historique_rendements: List[float] = []
@@ -36,9 +36,9 @@ class Actifs:
 
             self.nom_entreprise = info.info.get("longName", "Inconnu")
             self.secteur = info.info.get("sector", "Inconnu")
-            self.industrie = info.info.get("industry", "Inconnu")
             self.volume = info.info.get("volume", 0)
             self.market_cap = info.info.get("marketCap", 0)
+            self.industrie = info.info.get("industry", "Inconnu")
             self.high = info.info.get("fiftyTwoWeekHigh", 0)
             self.low = info.info.get("fiftyTwoWeekLow", 0)
 
@@ -53,10 +53,10 @@ class Actifs:
             self.calculer_rendements()
 
         except Exception as e:
-            print(f"Erreur lors de l'initialisation des données : {e}")
+            raise RuntimeError(f"Erreur lors de l'initialisation des données pour {self.ticker} : {e}")
 
     def get_infos(self) -> dict:
-        """Retourne un dict avec les infos principales pour affichage dans Streamlit."""
+        """Retourne un dictionnaire des infos clés à afficher dans Streamlit"""
         return {
             "Ticker": self.ticker,
             "Entreprise": self.nom_entreprise,
@@ -64,23 +64,23 @@ class Actifs:
             "Industrie": self.industrie,
             "Prix aujourd'hui": self.prix_aujourdhui,
             "Prix hier": self.prix_hier,
-            "Variation jour": self.variation_jour(),
-            "Variation jour (%)": self.variation_jour_pct(),
             "Volume": self.volume,
             "Market Cap": self.market_cap,
-            "High 52 sem.": self.high,
-            "Low 52 sem.": self.low,
+            "Valeur la plus haute sur 52 semaines": self.high,
+            "Valeur la plus basse sur 52 semaines": self.low,
+            "Variation jour": self.variation_jour(),
+            "Variation jour (%)": self.variation_jour_pct(),
             "Volatilité historique": self.calculer_vol_historique(),
             "Maximum Drawdown (%)": self.maximum_drawdown() * 100,
         }
 
-    def variation_jour(self) -> float:
+    def variation_jour(self):
         return self.prix_aujourdhui - self.prix_hier
 
-    def variation_jour_pct(self) -> float:
+    def variation_jour_pct(self):
         if self.prix_hier != 0:
             return (self.variation_jour() / self.prix_hier) * 100
-        return 0.0
+        return 0
 
     def calculer_rendements(self):
         self.historique_rendements = []
@@ -91,36 +91,17 @@ class Actifs:
                 rendement = (prix_nouveau - prix_ancien) / prix_ancien
                 self.historique_rendements.append(rendement)
             else:
-                self.historique_rendements.append(0.0)
+                self.historique_rendements.append(0)
 
-    def calculer_vol_historique(self) -> float:
+    def calculer_vol_historique(self):
         if len(self.historique_rendements) < 2:
-            return 0.0
+            return 0
         moyenne = sum(self.historique_rendements) / len(self.historique_rendements)
         variance = sum((r - moyenne) ** 2 for r in self.historique_rendements) / (len(self.historique_rendements) - 1)
         return math.sqrt(variance)
 
-    def maximum_drawdown(self) -> float:
+    def maximum_drawdown(self):
         if self.high != 0:
             return (self.high - self.low) / self.high
         else:
-            return 0.0
-
-    def get_historique(self, start: Optional[str] = None, end: Optional[str] = None, period: str = "1mo", interval: str = "1d") -> Optional[pd.DataFrame]:
-        """
-        Récupère les données historiques sous forme de DataFrame.
-        Params:
-            start, end: 'YYYY-MM-DD' ou None
-            period: période par défaut si pas start/end ('1mo', '5d', etc.)
-            interval: intervalle des données ('1d', '1h', ...)
-        Retourne None si erreur.
-        """
-        try:
-            if start and end:
-                data = yf.download(self.ticker, start=start, end=end, interval=interval)
-            else:
-                data = yf.download(self.ticker, period=period, interval=interval)
-            return data
-        except Exception as e:
-            print(f"Erreur téléchargement historique : {e}")
-            return None
+            return 0

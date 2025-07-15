@@ -68,7 +68,10 @@ def main():
             else:
                 st.subheader("Performance du portefeuille")
                 perf_df = port.afficher_performance()
-                st.dataframe(perf_df)
+                if perf_df.empty :
+                    st.info("Portefeuille vide.")
+                else:
+                    st.dataframe(perf_df)
 
         case "index":
             ticker_index = st.text_input("Ticker de l'Index")

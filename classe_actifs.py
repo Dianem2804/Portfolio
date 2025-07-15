@@ -5,41 +5,42 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 #but du code : créer la classe actif, definir les  paramètres et les méthodes 
- 
-class Actifs : 
-    def __init__(self, ticker: str, quantite: int=0, taux_sans_risque: float = 0.02):
-        self.ticker = ticker
+ import yfinance as yf
+import math
+from typing import List, Optional
+import pandas as pd
+
+class Actifs:
+    def __init__(self, ticker: str, quantite: int = 0, taux_sans_risque: float = 0.02):
+        self.ticker = ticker.upper()
         self.quantite = quantite
         self.taux_sans_risque = taux_sans_risque
         self.nom_entreprise = ""
-        self.prix_aujourdhui = 0
-        self.prix_hier = 0
-        self.historique_prix = []
+        self.prix_aujourdhui = 0.0
+        self.prix_hier = 0.0
+        self.historique_prix: List[float] = []
         self.secteur = ""
         self.industrie = ""
-        self.high = 0
-        self.low = 0
+        self.high = 0.0
+        self.low = 0.0
         self.volume = 0
+        self.market_cap = 0
         self.historique_rendements: List[float] = []
-       
 
         self.initialiser_donnees()
-        self.afficher_infos()
-
-# extraire les infos de yahoo finance 
 
     def initialiser_donnees(self):
         try:
             info = yf.Ticker(self.ticker)
-            data = info.history(period="5d")  
+            data = info.history(period="5d")
 
             self.nom_entreprise = info.info.get("longName", "Inconnu")
             self.secteur = info.info.get("sector", "Inconnu")
+            self.industrie = info.info.get("industry", "Inconnu")
             self.volume = info.info.get("volume", 0)
-            self.market_cap = info.info.get("marketCap")
-            self.industrie = info.info.get("industry")
-            self.high = info.info.get("fiftyTwoWeekHigh")
-            self.low = info.info.get("fiftyTwoWeekLow")
+            self.market_cap = info.info.get("marketCap", 0)
+            self.high = info.info.get("fiftyTwoWeekHigh", 0)
+            self.low = info.info.get("fiftyTwoWeekLow", 0)
 
             self.historique_prix = data["Close"].tolist()
 
@@ -50,29 +51,36 @@ class Actifs :
                 self.prix_aujourdhui = self.historique_prix[-1]
 
             self.calculer_rendements()
-        
+
         except Exception as e:
             print(f"Erreur lors de l'initialisation des données : {e}")
 
-    def afficher_infos(self):
-        print(f"Ticker : {self.ticker}")
-        print(f"Entreprise : {self.nom_entreprise}")
-        print(f"Secteur : {self.secteur}")
-        print(f"Prix aujourd'hui : {self.prix_aujourdhui}")
-        print(f"Volume : {self.volume}")
-        print(f"Market Cap : {self.market_cap}")
-        print(f"Industrie : {self.industrie}")
-        print(f"Valeur la + haute sur 52 semaines : {self.high}")
-        print(f"Valeur la + basse sur 52 semaines : {self.low}")
+    def get_infos(self) -> dict:
+        """Retourne un dict avec les infos principales pour affichage dans Streamlit."""
+        return {
+            "Ticker": self.ticker,
+            "Entreprise": self.nom_entreprise,
+            "Secteur": self.secteur,
+            "Industrie": self.industrie,
+            "Prix aujourd'hui": self.prix_aujourdhui,
+            "Prix hier": self.prix_hier,
+            "Variation jour": self.variation_jour(),
+            "Variation jour (%)": self.variation_jour_pct(),
+            "Volume": self.volume,
+            "Market Cap": self.market_cap,
+            "High 52 sem.": self.high,
+            "Low 52 sem.": self.low,
+            "Volatilité historique": self.calculer_vol_historique(),
+            "Maximum Drawdown (%)": self.maximum_drawdown() * 100,
+        }
 
-        
-    def variation_jour(self):
+    def variation_jour(self) -> float:
         return self.prix_aujourdhui - self.prix_hier
 
-    def variation_jour_pct(self):
+    def variation_jour_pct(self) -> float:
         if self.prix_hier != 0:
             return (self.variation_jour() / self.prix_hier) * 100
-        return 0
+        return 0.0
 
     def calculer_rendements(self):
         self.historique_rendements = []
@@ -83,79 +91,36 @@ class Actifs :
                 rendement = (prix_nouveau - prix_ancien) / prix_ancien
                 self.historique_rendements.append(rendement)
             else:
-                self.historique_rendements.append(0)
+                self.historique_rendements.append(0.0)
 
-    def calculer_vol_historique(self):
+    def calculer_vol_historique(self) -> float:
         if len(self.historique_rendements) < 2:
-            return 0
+            return 0.0
         moyenne = sum(self.historique_rendements) / len(self.historique_rendements)
         variance = sum((r - moyenne) ** 2 for r in self.historique_rendements) / (len(self.historique_rendements) - 1)
         return math.sqrt(variance)
 
-
-# calculer le maximum drawdown ( plus grande perte enregistrée sur une période donnée)
-    def maximum_drawdown(self):
+    def maximum_drawdown(self) -> float:
         if self.high != 0:
             return (self.high - self.low) / self.high
-        else: 
-            return 0
+        else:
+            return 0.0
 
-from datetime import datetime, timedelta
-
-
-
-if __name__ == "__main__":
-    while True:
-        ticker = input("Entrer un ticker (ou 'exit' pour quitter) : ").upper()
-
-        if ticker == "EXIT":
-            print("Programme terminé.")
-            break
-
+    def get_historique(self, start: Optional[str] = None, end: Optional[str] = None, period: str = "1mo", interval: str = "1d") -> Optional[pd.DataFrame]:
+        """
+        Récupère les données historiques sous forme de DataFrame.
+        Params:
+            start, end: 'YYYY-MM-DD' ou None
+            period: période par défaut si pas start/end ('1mo', '5d', etc.)
+            interval: intervalle des données ('1d', '1h', ...)
+        Retourne None si erreur.
+        """
         try:
-            info = yf.Ticker(ticker).info
-            if not info or info.get("regularMarketPrice") is None:
-                print("Ticker non existant.\n")
+            if start and end:
+                data = yf.download(self.ticker, start=start, end=end, interval=interval)
             else:
-                action = Actifs(ticker)
-                print(f"Variation jour : {action.variation_jour():.2f}")
-                print(f"Variation jour (%) : {action.variation_jour_pct():.2f}%")
-                print(f"Volatilité historique : {action.calculer_vol_historique():.4f}")
-                print(f"Maximum Drawdown : {action.maximum_drawdown():.2%}")
-
-                start_date = '2024-01-01'
-                end_date = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
-
-                data = yf.download(ticker, start=start_date, end=end_date)
-                if not data.empty:
-                    # Graphique des prix de clôture
-                    data['Close'].plot(title=f"Clôture {ticker} ({start_date} → {end_date})")
-                    plt.xlabel("Date")
-                    plt.ylabel("Prix de clôture ($)")
-                    plt.grid()
-                    plt.tight_layout()
-                    plt.show()
-
-                    # Affichage des 5 derniers prix de clôture
-                    print("\nDerniers jours de clôture :")
-                    print(data[['Close']].tail(5))
-
-                    # Statistiques descriptives
-                    print("\nStatistiques descriptives :")
-                    print(data['Close'].describe().round(2))
-
-                    # Tableau personnalisé avec les stats Action
-                    stats = pd.DataFrame({
-                        'Variation jour': [action.variation_jour()],
-                        'Variation jour (%)': [action.variation_jour_pct()],
-                        'Volatilité historique': [action.calculer_vol_historique()],
-                        'Maximum Drawdown (%)': [action.maximum_drawdown() * 100] })
-                    print("\nRésumé des statistiques calculées :")
-                    print(stats.round(2))
-
-    
-
-                else:
-                    print("Pas de données disponibles sur cette période.\n")
+                data = yf.download(self.ticker, period=period, interval=interval)
+            return data
         except Exception as e:
-            print(f"Erreur lors de la création de l'action : {e}\n")
+            print(f"Erreur téléchargement historique : {e}")
+            return None

@@ -32,6 +32,7 @@ def main():
                 actifs = Actifs(ticker)
                 st.subheader(f"Informations sur {ticker.upper()}")
                 st.write(actifs.afficher_infos())
+                actifs.afficher_graphique()
 
         case "create_port":
             nom = st.text_input("Nom du portefeuille")

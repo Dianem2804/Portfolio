@@ -2,6 +2,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from classe_actifs import Actifs
 import yfinance as yf
+import pandas as pd 
 
 class Portefeuille:
     def __init__(self, nom):
@@ -75,8 +76,7 @@ class Portefeuille:
 
     def performance_depuis_achat(self):
         if not self.actifs or self.date_achat_portefeuille is None:
-            print("Aucune action ou date d'achat disponible pour calculer la performance.")
-            return
+            return pd.DataFrame()  # tableau vide
 
         prix_total_achat = 0
         valeur_actuelle = 0
@@ -87,19 +87,30 @@ class Portefeuille:
             valeur_actuelle += prix_courant * quantite
 
         rendement = (valeur_actuelle - prix_total_achat) / prix_total_achat
-        print(f"Performance depuis la date d'achat ({self.date_achat_portefeuille.strftime('%Y-%m-%d')}): {rendement * 100:.2f} %")
 
+    
+        df = pd.DataFrame({
+            "Date d'achat portefeuille": [self.date_achat_portefeuille.strftime('%Y-%m-%d')],
+            "Performance (%)": [round(rendement * 100, 2)]
+        })
+        return df
+        
     def afficher_performance(self):
         if not self.actifs:
-            print("Portefeuille vide.")
-            return
-        print("Performance du portefeuille :")
-        # Calcul simple : somme des performances pondérées par la quantité
+            return pd.DataFrame()  # vide si rien
+
+        data = []
         for action, quantite in zip(self.actifs, self.quantites):
             prix_achat = self.prix_achats.get(action.ticker, 0)
             prix_courant = action.get_prix_actuel()
             rendement = (prix_courant - prix_achat) / prix_achat if prix_achat > 0 else 0
-            print(f"Action {action.ticker} : Rendement {rendement*100:.2f} % avec {quantite} unités")
+            data.append({
+                "Ticker": action.ticker,
+                "Quantité": quantite,
+                "Rendement (%)": round(rendement * 100, 2)
+            })
+        df = pd.DataFrame(data)
+        return df
 
     def comparer_a_reference(self):
         if self.reference is None:

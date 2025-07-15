@@ -1,7 +1,7 @@
 import yfinance as yf
 import math
 from typing import List
-
+import matplotlib.pyplot as plt
 import yfinance as yf
 import math
 from typing import List
@@ -133,3 +133,16 @@ class Index:
             "Ratio de Sharpe": round(self.calculer_sharpe(), 4),
             "Maximum Drawdown (%)": round(self.maximum_drawdown() * 100, 2),
         }
+
+    def afficher_graphique(self):
+        if not self.historique_dates or not self.historique_prix:
+            return None
+        plt.figure(figsize=(10, 5))
+        plt.plot(self.historique_dates, self.historique_prix, label="Prix de clôture")
+        plt.title(f"Historique des prix pour {self.ticker.upper()}")
+        plt.xlabel("Date")
+        plt.ylabel("Prix")
+        plt.grid(True)
+        plt.legend()
+        plt.tight_layout()
+        return plt

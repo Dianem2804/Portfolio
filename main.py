@@ -5,8 +5,6 @@ from classe_index import Index
 from classe_portefeuille import Portefeuille
 import yfinance as yf
 
-
-
 def main():
     st.set_page_config(page_title="Gestion de Portefeuille", page_icon="📉")
     st.title("📉 Gestion de Portefeuille")
@@ -45,30 +43,30 @@ def main():
             port = st.session_state.portefeuille
             if port is None:
                 st.warning("Créez d'abord un portefeuille dans l'onglet précédent.")
-                break
-            actifs_ticker = st.text_input("Ticker de l'action")
-            op = st.selectbox("Opération", ["Ajouter", "Retirer"])
-            quantite = st.number_input("Quantité", min_value=1, step=1)
-            date_achat = None
-            if op == "Ajouter":
-                date_achat = st.date_input("Date d'achat", value=date.today())
-            if st.button("Valider") and actifs_ticker and quantite:
-                actifs = Actifs(actifs_ticker)
+            else:
+                actifs_ticker = st.text_input("Ticker de l'action")
+                op = st.selectbox("Opération", ["Ajouter", "Retirer"])
+                quantite = st.number_input("Quantité", min_value=1, step=1)
+                date_achat = None
                 if op == "Ajouter":
-                    port.ajouter_actifs(actifs, int(quantite), datetime.combine(date_achat, datetime.min.time()))
-                    st.success("Actifs ajoutés au portefeuille ✅")
-                else:
-                    port.retirer_actifs(actifs_ticker, int(quantite))
-                    st.success("Actifs retirés du portefeuille 🗑️")
+                    date_achat = st.date_input("Date d'achat", value=date.today())
+                if st.button("Valider") and actifs_ticker and quantite:
+                    actifs = Actifs(actifs_ticker)
+                    if op == "Ajouter":
+                        port.ajouter_actifs(actifs, int(quantite), datetime.combine(date_achat, datetime.min.time()))
+                        st.success("Actifs ajoutés au portefeuille ✅")
+                    else:
+                        port.retirer_actifs(actifs_ticker, int(quantite))
+                        st.success("Actifs retirés du portefeuille 🗑️")
 
         case "performance":
             port = st.session_state.portefeuille
             if port is None:
                 st.warning("Créez d'abord un portefeuille.")
-                break
-            st.subheader("Performance du portefeuille")
-            perf_df = port.afficher_performance()
-            st.dataframe(perf_df)
+            else:
+                st.subheader("Performance du portefeuille")
+                perf_df = port.afficher_performance()
+                st.dataframe(perf_df)
 
         case "index":
             ticker_index = st.text_input("Ticker de l'Index")
@@ -81,20 +79,20 @@ def main():
             port = st.session_state.portefeuille
             if port is None:
                 st.warning("Créez d'abord un portefeuille.")
-                break
-            ticker_index = st.text_input("Ticker de l'Index de référence")
-            if ticker_index and st.button("Comparer"):
-                index = Index(ticker_index)
-                compar_df = port.comparer_a_reference(index)
-                st.dataframe(compar_df)
+            else:
+                ticker_index = st.text_input("Ticker de l'Index de référence")
+                if ticker_index and st.button("Comparer"):
+                    index = Index(ticker_index)
+                    compar_df = port.comparer_a_reference(index)
+                    st.dataframe(compar_df)
 
         case "metrics":
             port = st.session_state.portefeuille
             if port is None:
                 st.warning("Créez d'abord un portefeuille.")
-                break
-            ratio = port.ratio_sharpe()
-            st.metric("Ratio de Sharpe", f"{ratio:.4f}")
+            else:
+                ratio = port.ratio_sharpe()
+                st.metric("Ratio de Sharpe", f"{ratio:.4f}")
 
 
 if __name__ == "__main__":

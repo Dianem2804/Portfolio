@@ -147,3 +147,45 @@ class Portefeuille:
             return 0.0
         sharpe = esp_rend / vol
         return sharpe
+
+    
+    def sauvegarder_excel(self, chemin_fichier=None):
+        """Sauvegarde le portefeuille dans un fichier Excel."""
+        if chemin_fichier is None:
+            chemin_fichier = f"{self.nom}_portefeuille.xlsx"
+
+        data = []
+        for action, quantite in zip(self.actifs, self.quantites):
+            prix_achat = self.prix_achats.get(action.ticker, 0)
+            data.append({
+                "Ticker": action.ticker,
+                "Quantité": quantite,
+                "Prix Achat Moyen": prix_achat
+            })
+
+        df = pd.DataFrame(data)
+        df.to_excel(chemin_fichier, index=False)
+        print(f"Portefeuille sauvegardé dans {chemin_fichier}")
+
+    def charger_excel(self, chemin_fichier=None):
+        """Charge un portefeuille depuis un fichier Excel."""
+        if chemin_fichier is None:
+            chemin_fichier = f"{self.nom}_portefeuille.xlsx"
+
+        if not os.path.exists(chemin_fichier):
+            print(f"Fichier {chemin_fichier} introuvable.")
+            return
+
+        df = pd.read_excel(chemin_fichier)
+        self.actifs = []
+        self.quantites = []
+        self.prix_achats = {}
+
+        for _, row in df.iterrows():
+            action = Actifs(row["Ticker"])
+            self.actifs.append(action)
+            self.quantites.append(int(row["Quantité"]))
+            self.prix_achats[action.ticker] = float(row["Prix Achat Moyen"])
+
+        print(f"Portefeuille chargé depuis {chemin_fichier}")
+    

@@ -1,60 +1,62 @@
-import sqlite3
+import pandas as pd
 from datetime import date
+import os
 
 class DatabasePortefeuille:
-    def __init__(self, db_path="portefeuille.db"):
-        self.conn = sqlite3.connect(db_path)
-        self.create_tables()
+    def __init__(self, filename="portfolios.csv"):
+        self.filename = filename
+        if os.path.exists(self.filename):
+            self.df = pd.read_csv(self.filename, parse_dates=["date_achat"])
+        else:
+            self.df = pd.DataFrame(columns=["nom_portefeuille", "ticker", "quantite", "prix_achat", "date_achat"])
 
-    def create_tables(self):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS portefeuilles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nom TEXT UNIQUE NOT NULL
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS actions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                portefeuille_id INTEGER,
-                ticker TEXT,
-                quantite INTEGER,
-                prix_achat REAL,
-                date_achat TEXT,
-                FOREIGN KEY (portefeuille_id) REFERENCES portefeuilles(id)
-            )
-        ''')
-        self.conn.commit()
+    def sauvegarder(self):
+        self.df.to_csv(self.filename, index=False)
 
     def ajouter_portefeuille(self, nom):
-        cursor = self.conn.cursor()
-        cursor.execute('INSERT OR IGNORE INTO portefeuilles (nom) VALUES (?)', (nom,))
-        self.conn.commit()
+        # Pas besoin de ligne spéciale, on crée portefeuille à la création d'action
+        if nom not in self.df["nom_portefeuille"].unique():
+            # Juste une méthode pour avoir un nom reconnu, sans action
+            pass
 
-    def get_portefeuille_id(self, nom):
-        cursor = self.conn.cursor()
-        cursor.execute('SELECT id FROM portefeuilles WHERE nom = ?', (nom,))
-        res = cursor.fetchone()
-        return res[0] if res else None
+    def get_all_portfolios(self):
+        return list(self.df["nom_portefeuille"].unique())
 
     def ajouter_action(self, nom_portefeuille, ticker, quantite, prix_achat, date_achat):
-        portefeuille_id = self.get_portefeuille_id(nom_portefeuille)
-        if portefeuille_id is None:
-            raise ValueError("Portefeuille non trouvé")
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT INTO actions (portefeuille_id, ticker, quantite, prix_achat, date_achat)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (portefeuille_id, ticker, quantite, prix_achat, date_achat.isoformat()))
-        self.conn.commit()
+        # Ajouter ligne nouvelle action
+        new_row = {
+            "nom_portefeuille": nom_portefeuille,
+            "ticker": ticker,
+            "quantite": quantite,
+            "prix_achat": prix_achat,
+            "date_achat": pd.to_datetime(date_achat)
+        }
+        self.df = pd.concat([self.df, pd.DataFrame([new_row])], ignore_index=True)
+        self.sauvegarder()
 
     def get_actions(self, nom_portefeuille):
-        portefeuille_id = self.get_portefeuille_id(nom_portefeuille)
-        if portefeuille_id is None:
-            return []
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            SELECT ticker, quantite, prix_achat, date_achat FROM actions WHERE portefeuille_id = ?
-        ''', (portefeuille_id,))
-        return cursor.fetchall()
+        subset = self.df[self.df["nom_portefeuille"] == nom_portefeuille]
+        # Retourne liste de tuples (ticker, quantite, prix_achat, date_achat)
+        return list(subset[["ticker", "quantite", "prix_achat", "date_achat"]].itertuples(index=False, name=None))
+
+    def retirer_action(self, nom_portefeuille, ticker, quantite):
+        # Retirer quantité dans l'ordre ancienneté date_achat
+        subset = self.df[(self.df["nom_portefeuille"] == nom_portefeuille) & (self.df["ticker"] == ticker)]
+        subset = subset.sort_values(by="date_achat")
+        
+        qty_to_remove = quantite
+        indices_to_drop = []
+        for idx, row in subset.iterrows():
+            if qty_to_remove <= 0:
+                break
+            if row["quantite"] <= qty_to_remove:
+                qty_to_remove -= row["quantite"]
+                indices_to_drop.append(idx)
+            else:
+                # Modifier la quantité restante
+                self.df.at[idx, "quantite"] = row["quantite"] - qty_to_remove
+                qty_to_remove = 0
+
+        # Supprimer les lignes où quantité totalement retirée
+        self.df = self.df.drop(indices_to_drop)
+        self.sauvegarder()

@@ -4,6 +4,10 @@ from classe_actifs import Actifs
 from classe_index import Index
 from classe_portefeuille import Portefeuille
 import yfinance as yf
+import pandas as pd 
+
+if "portefeuille" not in st.session_state:
+    st.session_state.portefeuille = Portefeuille("Mon Portefeuille")
 
 def main():
     st.set_page_config(page_title="Gestion de Portefeuille", page_icon="📉")
@@ -59,19 +63,37 @@ def main():
                     else:
                         port.retirer_action(actifs_ticker, int(quantite))
                         st.success("Actifs retirés du portefeuille 🗑️")
+                    if "portefeuille" not in st.session_state:
+                    st.session_state.portefeuille = Portefeuille("Mon Portefeuille")
+                if st.checkbox("Afficher contenu portefeuille"):
+                   st.write("Tickers :", [a.ticker for a in port.actifs])
+                   st.write("Quantités :", port.quantites)
 
 
         case "performance":
             port = st.session_state.portefeuille
-            if port is None:
-                st.warning("Créez d'abord un portefeuille.")
+            if not port.actifs:
+                st.warning("Portefeuille vide.")
             else:
                 st.subheader("Performance du portefeuille")
-                perf_df = port.afficher_performance()
-                if perf_df.empty :
-                    st.info("Portefeuille vide.")
-                else:
-                    st.dataframe(perf_df)
+ 
+       # créer un DataFrame pour affichage propre
+                data = []
+                for action, quantite in zip(port.actifs, port.quantites):
+                    prix_achat = port.prix_achats.get(action.ticker, 0)
+                    prix_courant = action.get_prix_actuel()
+                    rendement = (prix_courant - prix_achat) / prix_achat if prix_achat else 0
+                    data.append({
+                        "Ticker": action.ticker,
+                        "Quantité": quantite,
+                        "Prix Achat": round(prix_achat, 2),
+                        "Prix Actuel": round(prix_courant, 2),
+                        "Rendement (%)": round(rendement * 100, 2)
+                    })
+
+            perf_df = pd.DataFrame(data)
+            st.dataframe(perf_df)
+
 
         case "index":
             ticker_index = st.text_input("Ticker de l'Index")

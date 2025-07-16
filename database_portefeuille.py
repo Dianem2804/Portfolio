@@ -1,41 +1,60 @@
-import streamlit as st
+import sqlite3
 from datetime import date
 
-db = DatabasePortefeuille()
+class DatabasePortefeuille:
+    def __init__(self, db_path="portefeuille.db"):
+        self.conn = sqlite3.connect(db_path)
+        self.create_tables()
 
-if "nom_portefeuille" not in st.session_state:
-    st.session_state.nom_portefeuille = None
+    def create_tables(self):
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS portefeuilles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nom TEXT UNIQUE NOT NULL
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                portefeuille_id INTEGER,
+                ticker TEXT,
+                quantite INTEGER,
+                prix_achat REAL,
+                date_achat TEXT,
+                FOREIGN KEY (portefeuille_id) REFERENCES portefeuilles(id)
+            )
+        ''')
+        self.conn.commit()
 
-choix = st.sidebar.selectbox("Menu", ["Créer portefeuille", "Ajouter action", "Afficher portefeuille"])
+    def ajouter_portefeuille(self, nom):
+        cursor = self.conn.cursor()
+        cursor.execute('INSERT OR IGNORE INTO portefeuilles (nom) VALUES (?)', (nom,))
+        self.conn.commit()
 
-if choix == "Créer portefeuille":
-    nom = st.text_input("Nom du portefeuille")
-    if st.button("Créer") and nom:
-        db.ajouter_portefeuille(nom)
-        st.session_state.nom_portefeuille = nom
-        st.success(f"Portefeuille '{nom}' créé !")
+    def get_portefeuille_id(self, nom):
+        cursor = self.conn.cursor()
+        cursor.execute('SELECT id FROM portefeuilles WHERE nom = ?', (nom,))
+        res = cursor.fetchone()
+        return res[0] if res else None
 
-elif choix == "Ajouter action":
-    if st.session_state.nom_portefeuille is None:
-        st.warning("Créez d'abord un portefeuille.")
-    else:
-        ticker = st.text_input("Ticker")
-        quantite = st.number_input("Quantité", min_value=1, step=1)
-        date_achat = st.date_input("Date d'achat", value=date.today())
-        prix_achat = st.number_input("Prix d'achat", min_value=0.0, format="%.2f")
+    def ajouter_action(self, nom_portefeuille, ticker, quantite, prix_achat, date_achat):
+        portefeuille_id = self.get_portefeuille_id(nom_portefeuille)
+        if portefeuille_id is None:
+            raise ValueError("Portefeuille non trouvé")
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            INSERT INTO actions (portefeuille_id, ticker, quantite, prix_achat, date_achat)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (portefeuille_id, ticker, quantite, prix_achat, date_achat.isoformat()))
+        self.conn.commit()
 
-        if st.button("Ajouter"):
-            db.ajouter_action(st.session_state.nom_portefeuille, ticker.upper(), quantite, prix_achat, date_achat)
-            st.success(f"{quantite} actions {ticker.upper()} ajoutées au portefeuille '{st.session_state.nom_portefeuille}'.")
-
-elif choix == "Afficher portefeuille":
-    if st.session_state.nom_portefeuille is None:
-        st.warning("Créez d'abord un portefeuille.")
-    else:
-        st.subheader(f"Portefeuille: {st.session_state.nom_portefeuille}")
-        actions = db.get_actions(st.session_state.nom_portefeuille)
-        if not actions:
-            st.write("Portefeuille vide.")
-        else:
-            df = pd.DataFrame(actions, columns=["Ticker", "Quantité", "Prix Achat", "Date Achat"])
-            st.dataframe(df)
+    def get_actions(self, nom_portefeuille):
+        portefeuille_id = self.get_portefeuille_id(nom_portefeuille)
+        if portefeuille_id is None:
+            return []
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT ticker, quantite, prix_achat, date_achat FROM actions WHERE portefeuille_id = ?
+        ''', (portefeuille_id,))
+        return cursor.fetchall()

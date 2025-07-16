@@ -42,6 +42,10 @@ class Actifs:
 
     def get_rendements_quotidiens(self) : 
         return self.historique_rendements
+    
+    def __eq__(self, other):
+        return self.ticker == other.ticker
+
         
     def initialiser_donnees(self):
         try:

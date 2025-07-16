@@ -1,138 +1,102 @@
 import streamlit as st
-from datetime import datetime, date
-from classe_actifs import Actifs
-from classe_index import Index
+from datetime import date
+import pandas as pd
 from classe_portefeuille import Portefeuille
-import yfinance as yf
-import pandas as pd 
+from classe_index import Index
+from database_portefeuille import DatabasePortefeuille
 
-if "portefeuille" not in st.session_state:
-    port = Portefeuille("Mon Portefeuille")
-    port.charger_excel()
-    st.session_state.portefeuille = port 
-    
+db = DatabasePortefeuille()
+
+if "nom_portefeuille" not in st.session_state:
+    st.session_state.nom_portefeuille = None
+
 def main():
     st.set_page_config(page_title="Gestion de Portefeuille", page_icon="📉")
     st.title("📉 Gestion de Portefeuille")
 
-    # ---- État de session ----
-    if "portefeuille" not in st.session_state:
-        st.session_state.portefeuille = None
-
-    # ---- Menu latéral ----
     menu = {
-        "1) Consulter une action": "action",
-        "2) Créer un portefeuille": "create_port",
-        "3) Ajouter/retirer des actions au portefeuille": "manage_port",
-        "4) Consulter performance / rendements du portefeuille": "performance",
-        "5) Consulter un Index": "index",
-        "6) Comparer rendements du portefeuille à un Index": "compare",
+        "1) Créer portefeuille": "create_portfolio",
+        "2) Ajouter action": "add_action",
+        "3) Afficher portefeuille": "show_portfolio",
+        "4) Afficher performance": "show_performance",
+        "5) Consulter un Index": "view_index",
+        "6) Comparer portefeuille à un Index": "compare_index",
         "7) Metrics du portefeuille (ratio de Sharpe)": "metrics",
     }
+
     choix = st.sidebar.selectbox("Menu", list(menu.keys()))
 
     match menu[choix]:
-        case "action":
-            ticker = st.text_input("Ticker de l'action")
-            if ticker:
-                actifs = Actifs(ticker)
-                st.subheader(f"Informations sur {ticker.upper()}")
-                st.write(actifs.afficher_infos())
-                actifs.afficher_graphique()
-
-        case "create_port":
+        case "create_portfolio":
             nom = st.text_input("Nom du portefeuille")
             if st.button("Créer") and nom:
-                st.session_state.portefeuille = Portefeuille(nom)
-                st.success(f"Portefeuille '{nom}' créé ✔️")
+                db.ajouter_portefeuille(nom)
+                st.session_state.nom_portefeuille = nom
+                st.success(f"Portefeuille '{nom}' créé !")
 
-        case "manage_port":
-            port = st.session_state.portefeuille
-            if port is None:
-                st.warning("Créez d'abord un portefeuille dans l'onglet précédent.")
+        case "add_action":
+            if st.session_state.nom_portefeuille is None:
+                st.warning("Créez d'abord un portefeuille.")
             else:
-                actifs_ticker = st.text_input("Ticker de l'action")
-                op = st.selectbox("Opération", ["Ajouter", "Retirer"])
+                ticker = st.text_input("Ticker")
                 quantite = st.number_input("Quantité", min_value=1, step=1)
-                date_achat = None
-                
-                if op == "Ajouter":
-                    date_achat = st.date_input("Date d'achat", value=date.today())
-                    
-                if st.button("Valider") and actifs_ticker and quantite:
-                    actifs = Actifs(actifs_ticker)
-                    if op == "Ajouter":
-                        port.ajouter_action(actifs, int(quantite), datetime.combine(date_achat, datetime.min.time()))
-                        st.success("Actifs ajoutés au portefeuille ✅")
-                    else:
-                        port.retirer_action(actifs_ticker, int(quantite))
-                        st.success("Actifs retirés du portefeuille 🗑️")
-                    post.sauvegarder_excel()
-                    
-                if st.checkbox("Afficher contenu portefeuille"):
-                    st.write("Actifs : ", port.actifs)
-                    st.write("Quantités : ", port.quantites)
-                    st.write("Tickers:", [a.ticker for a in port.actifs])
-                   
+                date_achat = st.date_input("Date d'achat", value=date.today())
+                prix_achat = st.number_input("Prix d'achat", min_value=0.0, format="%.2f")
 
+                if st.button("Ajouter"):
+                    db.ajouter_action(st.session_state.nom_portefeuille, ticker.upper(), quantite, prix_achat, date_achat)
+                    st.success(f"{quantite} actions {ticker.upper()} ajoutées au portefeuille '{st.session_state.nom_portefeuille}'.")
 
-        case "performance":
-            port = st.session_state.portefeuille
-            if port is None:
-                st.warning("Portefeuille vide.")
+        case "show_portfolio":
+            if st.session_state.nom_portefeuille is None:
+                st.warning("Créez d'abord un portefeuille.")
             else:
-                st.subheader("Performance du portefeuille")
+                st.subheader(f"Portefeuille: {st.session_state.nom_portefeuille}")
+                actions = db.get_actions(st.session_state.nom_portefeuille)
+                if not actions:
+                    st.write("Portefeuille vide.")
+                else:
+                    df = pd.DataFrame(actions, columns=["Ticker", "Quantité", "Prix Achat", "Date Achat"])
+                    st.dataframe(df)
+
+        case "show_performance":
+            if st.session_state.nom_portefeuille is None:
+                st.warning("Créez d'abord un portefeuille.")
+            else:
+                port = Portefeuille(st.session_state.nom_portefeuille, db)
                 perf_df = port.afficher_performance()
+                st.subheader(f"Performance du portefeuille '{port.nom}'")
                 st.dataframe(perf_df)
- 
-       # créer un DataFrame pour affichage propre
-                data = []
-                for action, quantite in zip(port.actifs, port.quantites):
-                    prix_achat = port.prix_achats.get(action.ticker, 0)
-                    prix_courant = action.get_prix_actuel()
-                    rendement = (prix_courant - prix_achat) / prix_achat if prix_achat else 0
-                    data.append({
-                        "Ticker": action.ticker,
-                        "Quantité": quantite,
-                        "Prix Achat": round(prix_achat, 2),
-                        "Prix Actuel": round(prix_courant, 2),
-                        "Rendement (%)": round(rendement * 100, 2)
-                    })
 
-            perf_df = pd.DataFrame(data)
-            st.dataframe(perf_df)
-
-
-        case "index":
+        case "view_index":
             ticker_index = st.text_input("Ticker de l'Index")
             if ticker_index:
                 index = Index(ticker_index)
                 st.subheader(f"Informations sur l'Index {ticker_index.upper()}")
-                st.write(index.afficher_infos())  # note le pluriel 'afficher_infos'
+                st.write(index.afficher_infos())
 
                 fig = index.afficher_graphique()
                 if fig:
                     st.pyplot(fig)
 
-        case "compare":
-            port = st.session_state.portefeuille
-            if port is None:
+        case "compare_index":
+            if st.session_state.nom_portefeuille is None:
                 st.warning("Créez d'abord un portefeuille.")
             else:
                 ticker_index = st.text_input("Ticker de l'Index de référence")
                 if ticker_index and st.button("Comparer"):
                     index = Index(ticker_index)
+                    port = Portefeuille(st.session_state.nom_portefeuille, db)
                     compar_df = port.comparer_a_reference(index)
                     st.dataframe(compar_df)
 
         case "metrics":
-            port = st.session_state.portefeuille
-            if port is None:
+            if st.session_state.nom_portefeuille is None:
                 st.warning("Créez d'abord un portefeuille.")
             else:
+                port = Portefeuille(st.session_state.nom_portefeuille, db)
                 ratio = port.ratio_sharpe()
                 st.metric("Ratio de Sharpe", f"{ratio:.4f}")
-
 
 if __name__ == "__main__":
     main()

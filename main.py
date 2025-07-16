@@ -7,8 +7,10 @@ import yfinance as yf
 import pandas as pd 
 
 if "portefeuille" not in st.session_state:
-    st.session_state.portefeuille = Portefeuille("Mon Portefeuille")
-
+    port = Portefeuille("Mon Portefeuille")
+    port.charger_excel()
+    st.session_state.portefeuille = port 
+    
 def main():
     st.set_page_config(page_title="Gestion de Portefeuille", page_icon="📉")
     st.title("📉 Gestion de Portefeuille")
@@ -65,6 +67,7 @@ def main():
                     else:
                         port.retirer_action(actifs_ticker, int(quantite))
                         st.success("Actifs retirés du portefeuille 🗑️")
+                    post.sauvegarder_excel()
                     
                 if st.checkbox("Afficher contenu portefeuille"):
                     st.write("Actifs : ", port.actifs)

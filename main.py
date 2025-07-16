@@ -67,8 +67,16 @@ def main():
                         st.success("Actifs retirés du portefeuille 🗑️")
                     
                 if st.checkbox("Afficher contenu portefeuille"):
-                   st.write("Tickers :", [a.ticker for a in port.actifs])
-                   st.write("Quantités :", port.quantites)
+                    if port.actifs:
+                        df = pd.DataFrame({
+                            "Ticker": [a.ticker for a in port.actifs],
+                            "Quantité": port.quantites,
+                            "Prix achat moyen": [round(port.prix_achats.get(a.ticker, 0), 2) for a in port.actifs]
+                        })
+                        st.dataframe(df)
+                    else:
+                        st.info("Portefeuille vide.")
+
 
 
         case "performance":

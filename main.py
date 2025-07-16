@@ -6,7 +6,7 @@ from classe_portefeuille import Portefeuille
 import pandas as pd
 
 # Initialisation du portefeuille dans la session
-if "portefeuille" not in st.session_state:
+if "portefeuille" not in st.session_state or not isinstance(st.session_state.portefeuille, Portefeuille):
     port = Portefeuille("Mon Portefeuille")
     port.charger_excel()
     st.session_state.portefeuille = port
@@ -47,9 +47,10 @@ def main():
 
         # 3 - Ajouter / Retirer des actions
         case "manage_port":
-            port = st.session_state.portefeuille
-            if port is None:
+            port = st.session_state.get("portefeuille", None)
+            if port is None or not isinstance(port, Portefeuille) :
                 st.warning("Créez d'abord un portefeuille dans l'onglet précédent.")
+                st.stop()
             else:
                 actifs_ticker = st.text_input("Ticker de l'action")
                 op = st.selectbox("Opération", ["Ajouter", "Retirer"])

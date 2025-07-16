@@ -73,10 +73,12 @@ def main():
 
         case "performance":
             port = st.session_state.portefeuille
-            if not port.actifs:
+            if port is None:
                 st.warning("Portefeuille vide.")
             else:
                 st.subheader("Performance du portefeuille")
+                perf_df = port.afficher_performance()
+                st.dataframe(perf_df)
  
        # créer un DataFrame pour affichage propre
                 data = []

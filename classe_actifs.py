@@ -36,6 +36,13 @@ class Actifs:
             "Valeur la + haute sur 52 semaines": self.high,
             "Valeur la + basse sur 52 semaines": self.low,
         }
+
+    def get_prix_actuel(self):
+        return self.prix_aujourdhui
+
+    def get_rendements_quotidiens(self) : 
+        return self.historique_rendements
+        
     def initialiser_donnees(self):
         try:
             info = yf.Ticker(self.ticker)

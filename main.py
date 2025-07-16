@@ -53,8 +53,10 @@ def main():
                 op = st.selectbox("Opération", ["Ajouter", "Retirer"])
                 quantite = st.number_input("Quantité", min_value=1, step=1)
                 date_achat = None
+                
                 if op == "Ajouter":
                     date_achat = st.date_input("Date d'achat", value=date.today())
+                    
                 if st.button("Valider") and actifs_ticker and quantite:
                     actifs = Actifs(actifs_ticker)
                     if op == "Ajouter":
@@ -63,8 +65,7 @@ def main():
                     else:
                         port.retirer_action(actifs_ticker, int(quantite))
                         st.success("Actifs retirés du portefeuille 🗑️")
-                    if "portefeuille" not in st.session_state:
-                    st.session_state.portefeuille = Portefeuille("Mon Portefeuille")
+                    
                 if st.checkbox("Afficher contenu portefeuille"):
                    st.write("Tickers :", [a.ticker for a in port.actifs])
                    st.write("Quantités :", port.quantites)

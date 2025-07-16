@@ -2,7 +2,8 @@ import numpy as np
 from datetime import datetime, timedelta
 from classe_actifs import Actifs
 import yfinance as yf
-import pandas as pd 
+import pandas as pd
+import os
 
 class Portefeuille:
     def __init__(self, nom):
@@ -150,7 +151,6 @@ class Portefeuille:
 
     
     def sauvegarder_excel(self, chemin_fichier=None):
-        """Sauvegarde le portefeuille dans un fichier Excel."""
         if chemin_fichier is None:
             chemin_fichier = f"{self.nom}_portefeuille.xlsx"
 
@@ -168,14 +168,11 @@ class Portefeuille:
         print(f"Portefeuille sauvegardé dans {chemin_fichier}")
 
     def charger_excel(self, chemin_fichier=None):
-        """Charge un portefeuille depuis un fichier Excel."""
         if chemin_fichier is None:
             chemin_fichier = f"{self.nom}_portefeuille.xlsx"
 
         if not os.path.exists(chemin_fichier):
-            print(f"Fichier {chemin_fichier} introuvable.")
             return
-
         df = pd.read_excel(chemin_fichier)
         self.actifs = []
         self.quantites = []
@@ -187,5 +184,5 @@ class Portefeuille:
             self.quantites.append(int(row["Quantité"]))
             self.prix_achats[action.ticker] = float(row["Prix Achat Moyen"])
 
-        print(f"Portefeuille chargé depuis {chemin_fichier}")
+        
     

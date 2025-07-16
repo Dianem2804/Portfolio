@@ -109,8 +109,7 @@ class Portefeuille:
                 "Quantité": quantite,
                 "Rendement (%)": round(rendement * 100, 2)
             })
-        df = pd.DataFrame(data)
-        return df
+        return pd.DataFrame(data) 
 
     def comparer_a_reference(self):
         if self.reference is None:

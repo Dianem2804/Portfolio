@@ -67,7 +67,7 @@ def main():
                     else:
                         port.retirer_action(actifs_ticker, int(quantite))
                         st.success("Actifs retirés du portefeuille 🗑️")
-                    port.sauvegarder_excel()
+                    
 
                 if st.checkbox("Afficher contenu portefeuille"):
                     st.write("Actifs : ", port.actifs)

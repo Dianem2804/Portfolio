@@ -8,7 +8,6 @@ import pandas as pd
 # Initialisation du portefeuille dans la session
 if "portefeuille" not in st.session_state or not isinstance(st.session_state.portefeuille, Portefeuille):
     port = Portefeuille("Mon Portefeuille")
-    port.charger_excel()
     st.session_state.portefeuille = port
 
 def main():

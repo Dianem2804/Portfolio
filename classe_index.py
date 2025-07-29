@@ -84,7 +84,7 @@ class Index:
                 max_dd = drawdown
         return abs(max_dd)
 
-    def get_rendement_depuis(self,date_debut):
+    def get_rendement_depuis(self, date_debut):
         if isinstance(date_debut, str):
             try:
                 date_debut = datetime.strptime(date_debut, "%Y-%m-%d")
@@ -146,7 +146,9 @@ class Index:
         return plt
 
     def get_performance(self):
-        """Retourne un DataFrame avec les indicateurs clés de performance"""
+        """Retourne un DataFrame avec les indicateurs clés de performance,
+        incluant la colonne 'Ticker' pour le merge."""
         infos = self.afficher_infos()
+        infos["Ticker"] = self.ticker  # <-- Ajout important pour le merge
         df = pd.DataFrame([infos])
         return df

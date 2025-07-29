@@ -1,6 +1,6 @@
 import pandas as pd
 from datetime import datetime
-from database_portefeuille import DatabasePortefeuille  # Assure-toi que c’est bon
+from database_portefeuille import DatabasePortefeuille  # Vérifie que ce fichier est bien présent
 from classe_actifs import Actifs
 from classe_index import Index
 
@@ -19,7 +19,7 @@ class Portefeuille:
         self.db.ajouter_portefeuille(nom)
 
     def get_prix_achat(self, ticker: str, date_achat: datetime):
-        # Placeholder, à remplacer par vraie récupération
+        # Placeholder à remplacer par vraie récupération du prix
         return 100.0
 
     def ajouter_action(self, action: Actifs, quantite: int, date_achat: datetime):
@@ -34,9 +34,11 @@ class Portefeuille:
             idx = self.actifs.index(action)
             ancienne_qte = self.quantites[idx]
             ancien_prix = self.prix_achats.get(action.ticker, 0)
+            # Calcul du prix moyen pondéré
             nouveau_prix = (ancien_prix * ancienne_qte + prix_achat * quantite) / (ancienne_qte + quantite)
             self.quantites[idx] += quantite
             self.prix_achats[action.ticker] = nouveau_prix
+            # Mise à jour de la date d'achat si plus ancienne
             if date_achat < self.dates_achat[idx]:
                 self.dates_achat[idx] = date_achat
         else:
@@ -51,8 +53,7 @@ class Portefeuille:
         print(f"Action {action.ticker} ajoutée avec {quantite} unités au prix d'achat {prix_achat:.2f} (date {date_achat.strftime('%Y-%m-%d')})")
 
     def retirer_action(self, ticker: str, quantite: int):
-        """Retirer une quantité d’un actif donné par ticker"""
-        # Trouver l’actif correspondant
+        # Recherche de l’actif par ticker
         index = next((i for i, a in enumerate(self.actifs) if a.ticker == ticker), None)
         if index is None:
             print(f"L'action {ticker} n'est pas dans le portefeuille.")
@@ -75,7 +76,6 @@ class Portefeuille:
         print(f"{quantite} unités retirées de {ticker}.")
 
     def save_portefeuille_to_file(self):
-        """Sauvegarde le portefeuille dans un fichier CSV"""
         if not self.actifs:
             print("Portefeuille vide, rien à sauvegarder.")
             return
@@ -91,4 +91,43 @@ class Portefeuille:
                 "Date Achat": date_achat.strftime("%Y-%m-%d")
             })
 
-        df = pd.DataF
+        df = pd.DataFrame(data)
+        df.to_csv(DATA_FILE, index=False)
+        print(f"Portefeuille sauvegardé dans {DATA_FILE}")
+
+    def charger_portefeuille_depuis_fichier(self):
+        try:
+            df = pd.read_csv(DATA_FILE)
+            self.actifs.clear()
+            self.quantites.clear()
+            self.dates_achat.clear()
+            self.prix_achats.clear()
+
+            for _, row in df.iterrows():
+                ticker = row['Ticker']
+                quantite = int(row['Quantité'])
+                date_achat = datetime.strptime(row['Date Achat'], "%Y-%m-%d")
+                action = Actifs(ticker)  # Assure-toi que la classe Actifs accepte ce constructeur
+                self.ajouter_action(action, quantite, date_achat)
+
+            print(f"Portefeuille chargé depuis {DATA_FILE}")
+        except FileNotFoundError:
+            print(f"Aucun fichier {DATA_FILE} trouvé.")
+        except Exception as e:
+            print(f"Erreur lors du chargement du portefeuille : {e}")
+
+    def afficher_performance(self):
+        # Exemple simple: renvoyer un DataFrame avec les données actuelles, à compléter selon ta logique réelle
+        data = []
+        for i, actif in enumerate(self.actifs):
+            quantite = self.quantites[i]
+            prix_achat = self.prix_achats.get(actif.ticker, 0)
+            # Placeholder performance (à remplacer par calcul réel)
+            performance = 0
+            data.append({
+                "Ticker": actif.ticker,
+                "Quantité": quantite,
+                "Prix Achat": prix_achat,
+                "Performance": performance
+            })
+        return pd.DataFrame(data)

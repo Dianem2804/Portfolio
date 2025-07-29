@@ -119,7 +119,7 @@ class Portefeuille:
             quantite = self.quantites[i]
             prix_achat = self.prix_achats.get(actif.ticker, 0)
             # Ici il faudrait récupérer la valeur actuelle de l’actif
-            valeur_actuelle = actif.get_prix_courant()  # Exemple, à implémenter dans classe Actifs
+            valeur_actuelle = actif.get_prix_actuel()  # Exemple, à implémenter dans classe Actifs
             performance = (valeur_actuelle - prix_achat) / prix_achat if prix_achat > 0 else 0
             data.append({
                 "Ticker": actif.ticker,

@@ -44,35 +44,37 @@ def main():
                 st.session_state.portefeuille = Portefeuille(nom)
                 st.success(f"Portefeuille '{nom}' créé ✔️")
 
-        # 3 - Ajouter / Retirer des actions
+               # 3 - Ajouter / Retirer des actions
         case "manage_port":
-            port = st.session_state.get("portefeuille", None)
-            if port is None or not isinstance(port, Portefeuille) :
-                st.warning("Créez d'abord un portefeuille dans l'onglet précédent.")
-                st.stop()
-            else:
-                actifs_ticker = st.text_input("Ticker de l'action")
-                op = st.selectbox("Opération", ["Ajouter", "Retirer"])
-                quantite = st.number_input("Quantité", min_value=1, step=1)
-                date_achat = None
+            if "portefeuille" not in st.session_state or not isinstance(st.session_state.portefeuille, Portefeuille):
+                st.session_state.portefeuille = load_portefeuille_from_file()
 
+            port = st.session_state.portefeuille
+
+            actifs_ticker = st.text_input("Ticker de l'action")
+            op = st.selectbox("Opération", ["Ajouter", "Retirer"])
+            quantite = st.number_input("Quantité", min_value=1, step=1)
+            date_achat = None
+
+            if op == "Ajouter":
+                date_achat = st.date_input("Date d'achat", value=date.today())
+
+            if st.button("Valider") and actifs_ticker and quantite:
+                actifs = Actifs(actifs_ticker)
                 if op == "Ajouter":
-                    date_achat = st.date_input("Date d'achat", value=date.today())
+                    port.ajouter_action(actifs, int(quantite), datetime.combine(date_achat, datetime.min.time()))
+                    st.success("Actifs ajoutés au portefeuille ✅")
+                else:
+                    port.retirer_action(actifs_ticker, int(quantite))
+                    st.success("Actifs retirés du portefeuille 🗑️")
 
-                if st.button("Valider") and actifs_ticker and quantite:
-                    actifs = Actifs(actifs_ticker)
-                    if op == "Ajouter":
-                        port.ajouter_action(actifs, int(quantite), datetime.combine(date_achat, datetime.min.time()))
-                        st.success("Actifs ajoutés au portefeuille ✅")
-                    else:
-                        port.retirer_action(actifs_ticker, int(quantite))
-                        st.success("Actifs retirés du portefeuille 🗑️")
-                    
+                save_portefeuille_to_file(port)
+                st.session_state.portefeuille = port
 
-                if st.checkbox("Afficher contenu portefeuille"):
-                    st.write("Actifs : ", port.actifs)
-                    st.write("Quantités : ", port.quantites)
-                    st.write("Tickers:", [a.ticker for a in port.actifs])
+            if st.checkbox("Afficher contenu portefeuille"):
+                st.write("Actifs : ", port.actifs)
+                st.write("Quantités : ", port.quantites)
+                st.write("Tickers:", [a.ticker for a in port.actifs])
 
         # 4 - Performance
         case "performance":

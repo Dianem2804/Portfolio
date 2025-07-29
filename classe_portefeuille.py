@@ -34,9 +34,11 @@ class Portefeuille:
             idx = self.actifs.index(action)
             ancienne_qte = self.quantites[idx]
             ancien_prix = self.prix_achats.get(action.ticker, 0)
+            # Calcul du prix moyen pondéré d'achat
             nouveau_prix = (ancien_prix * ancienne_qte + prix_achat * quantite) / (ancienne_qte + quantite)
             self.quantites[idx] += quantite
             self.prix_achats[action.ticker] = nouveau_prix
+            # Mise à jour de la date d'achat si la nouvelle est antérieure
             if date_achat < self.dates_achat[idx]:
                 self.dates_achat[idx] = date_achat
         else:
@@ -45,6 +47,7 @@ class Portefeuille:
             self.dates_achat.append(date_achat)
             self.prix_achats[action.ticker] = prix_achat
 
+        # Mise à jour de la date d'achat la plus ancienne du portefeuille
         if self.date_achat_portefeuille is None or date_achat < self.date_achat_portefeuille:
             self.date_achat_portefeuille = date_achat
 
@@ -64,6 +67,7 @@ class Portefeuille:
         self.db.retirer_action(self.nom, ticker, quantite)
 
         if self.quantites[index] == 0:
+            # Suppression complète de l'action si quantité nulle
             del self.actifs[index]
             del self.quantites[index]
             del self.dates_achat[index]
@@ -118,8 +122,12 @@ class Portefeuille:
         for i, actif in enumerate(self.actifs):
             quantite = self.quantites[i]
             prix_achat = self.prix_achats.get(actif.ticker, 0)
-            # Ici il faudrait récupérer la valeur actuelle de l’actif
-            valeur_actuelle = actif.get_prix_actuel()  # Exemple, à implémenter dans classe Actifs
+            try:
+                valeur_actuelle = actif.get_prix_actuel()  # À implémenter dans classe Actifs
+            except Exception as e:
+                print(f"Erreur récupération prix actuel pour {actif.ticker} : {e}")
+                valeur_actuelle = 0
+
             performance = (valeur_actuelle - prix_achat) / prix_achat if prix_achat > 0 else 0
             data.append({
                 "Ticker": actif.ticker,
@@ -133,11 +141,13 @@ class Portefeuille:
     def comparer_a_reference(self, reference: Index):
         self.reference = reference
         perf_portefeuille = self.afficher_performance()
-        # Supposons que reference a une méthode get_performance() qui renvoie un DataFrame similaire
         perf_reference = reference.get_performance()
 
-        # Ici on fait un join sur ticker ou sur la date selon ta structure
-        # Exemple simple, jointure par 'Ticker'
+        # Vérification que les colonnes 'Ticker' existent
+        if "Ticker" not in perf_portefeuille.columns or "Ticker" not in perf_reference.columns:
+            print("Erreur: la colonne 'Ticker' est absente dans les performances à comparer.")
+            return None
+
         comparaison = pd.merge(perf_portefeuille, perf_reference, on="Ticker", suffixes=('_Portefeuille', '_Reference'))
         return comparaison
 
@@ -147,9 +157,8 @@ class Portefeuille:
         Hypothèse: on a une méthode get_rendements() qui renvoie une série pandas des rendements journaliers.
         """
 
-        # On calcule la valeur totale du portefeuille au fil du temps, puis les rendements quotidiens
         try:
-            rendements = self.get_rendements()  # A implémenter: retourne pd.Series des rendements journaliers
+            rendements = self.get_rendements()  # Retourne pd.Series des rendements journaliers
             excess_returns = rendements - taux_sans_risque / 252  # Approx 252 jours de bourse/an
             sharpe_ratio = excess_returns.mean() / excess_returns.std() * (252 ** 0.5)
             return sharpe_ratio
@@ -157,14 +166,12 @@ class Portefeuille:
             print(f"Erreur dans le calcul du ratio de Sharpe: {e}")
             return None
 
-    # Exemple d'implémentation d'une méthode get_rendements() simplifiée
     def get_rendements(self):
         """
         Calcule les rendements journaliers du portefeuille en fonction des prix actuels des actifs.
-        Ici on suppose que chaque actif a une méthode get_historique_prix() qui renvoie une série de prix quotidiens.
+        On suppose que chaque actif a une méthode get_historique_prix() qui renvoie une pd.Series indexée par date.
         """
 
-        # Pour chaque actif, récupérer l'historique des prix et multiplier par la quantité
         df_valeurs = None
         for i, actif in enumerate(self.actifs):
             quantite = self.quantites[i]

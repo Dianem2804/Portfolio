@@ -1,4 +1,3 @@
-#but du code : créer la classe actif, definir les  paramètres et les méthodes
 import yfinance as yf
 import math
 from typing import List
@@ -24,6 +23,7 @@ class Actifs:
         self.historique_rendements: List[float] = []
 
         self.initialiser_donnees()
+
     def afficher_infos(self):
         return {
             "Ticker": self.ticker,
@@ -40,13 +40,12 @@ class Actifs:
     def get_prix_actuel(self):
         return self.prix_aujourdhui
 
-    def get_rendements_quotidiens(self) : 
+    def get_rendements_quotidiens(self): 
         return self.historique_rendements
     
     def __eq__(self, other):
         return self.ticker == other.ticker
 
-        
     def initialiser_donnees(self):
         try:
             info = yf.Ticker(self.ticker)
@@ -136,3 +135,29 @@ class Actifs:
         st.dataframe(data[['Close']].tail(5))
         st.write("Statistiques descriptives:")
         st.write(data['Close'].describe().round(2))
+
+    # --- Méthode ajoutée : obtenir le prix à une date donnée
+    def get_prix_a_date(self, date: datetime):
+        try:
+            start = date.strftime("%Y-%m-%d")
+            end = (date + timedelta(days=1)).strftime("%Y-%m-%d")
+            data = yf.download(self.ticker, start=start, end=end, progress=False)
+            if data.empty:
+                print(f"Aucune donnée pour {self.ticker} à la date {date.strftime('%Y-%m-%d')}")
+                return None
+            return data['Close'][0]
+        except Exception as e:
+            print(f"Erreur récupération prix à date pour {self.ticker}: {e}")
+            return None
+
+    # --- Méthode ajoutée : récupérer historique des prix (clôture)
+    def get_historique_prix(self, period="1y"):
+        try:
+            data = yf.download(self.ticker, period=period, progress=False)
+            if data.empty:
+                print(f"Aucune donnée historique pour {self.ticker} sur la période {period}")
+                return None
+            return data['Close']
+        except Exception as e:
+            print(f"Erreur récupération historique prix pour {self.ticker}: {e}")
+            return None

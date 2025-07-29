@@ -145,7 +145,11 @@ def main():
                 st.warning("Créez d'abord un portefeuille.")
             else:
                 ratio = port.ratio_sharpe()
-                st.metric("Ratio de Sharpe", f"{ratio:.4f}")
+                if ratio is not None : 
+                    st.metric("Ratio de Sharpe", f"{ratio:.4f}")
+                else:
+                    st.metric("Ratio de Sharpe" , "N/A")
+               
 
 if __name__ == "__main__":
     main()

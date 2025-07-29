@@ -15,6 +15,7 @@ class Portefeuille:
         self.reference = None       # Référence pour comparaison (objet Index)
         self.db = DatabasePortefeuille()
         self.db.ajouter_portefeuille(nom)
+        self.dates_achat = []
         
     def get_prix_achat(self, ticker, date_achat):
         """Récupère le prix de clôture ajusté pour un ticker à une date donnée via yfinance"""

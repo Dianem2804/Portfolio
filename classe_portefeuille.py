@@ -28,6 +28,33 @@ class Portefeuille:
         except Exception as e:
             print(f"Erreur récupération prix pour {ticker} : {e}")
             return None
+            
+    def save_portefeuille_to_file(port):
+        if not port or not isinstance(port, Portefeuille):
+            return
+
+        if not port.actifs or not hasattr(port, "quantites") or not hasattr(port, "dates_achat"):
+            return
+
+        data = []
+        for i in range(len(port.actifs)):
+            try:
+                action = port.actifs[i]
+                quantite = port.quantites[i]
+                date_achat = port.dates_achat[i]
+
+                data.append({
+                    "Ticker": action.ticker,
+                    "Quantité": quantite,
+                    "Date Achat": date_achat.strftime("%Y-%m-%d")
+            })
+            except Exception as e:
+                print(f"Erreur lors de la sauvegarde d'une ligne : {e}")
+                continue
+
+        if data:
+            df = pd.DataFrame(data)
+            df.to_csv(DATA_FILE, index=False)
 
     def ajouter_action(self, action: Actifs, quantite: int, date_achat: datetime):
         """Ajoute un actif avec une quantité et date d'achat"""

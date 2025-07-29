@@ -1,7 +1,8 @@
 import pandas as pd
 from datetime import datetime
 from database_portefeuille import DatabasePortefeuille  # Assure-toi que cette importation est correcte
-from actifs import Actifs  # idem pour ta classe Actifs
+from classe_actifs import Actifs  # idem pour ta classe Actifs
+from class_index import Index
 
 DATA_FILE = "portefeuille.csv"  # Constante globale pour la sauvegarde
 

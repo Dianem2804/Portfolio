@@ -84,10 +84,7 @@ def main():
                 save_portefeuille_to_file(port)
                 st.session_state.portefeuille = port
 
-            if st.checkbox("Afficher contenu portefeuille"):
-                st.write("Actifs : ", port.actifs)
-                st.write("Quantités : ", port.quantites)
-                st.write("Tickers:", [a.ticker for a in port.actifs])
+            
 
         # 4 - Performance
         case "performance":

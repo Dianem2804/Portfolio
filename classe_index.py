@@ -1,11 +1,9 @@
 import yfinance as yf
 import math
 from typing import List
-import matplotlib.pyplot as plt
-import yfinance as yf
-import math
-from typing import List
 from datetime import datetime
+import matplotlib.pyplot as plt
+import pandas as pd
 
 class Index:
     def __init__(self, ticker: str):
@@ -146,3 +144,9 @@ class Index:
         plt.legend()
         plt.tight_layout()
         return plt
+
+    def get_performance(self):
+        """Retourne un DataFrame avec les indicateurs clés de performance"""
+        infos = self.afficher_infos()
+        df = pd.DataFrame([infos])
+        return df

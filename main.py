@@ -4,10 +4,25 @@ from classe_actifs import Actifs
 from classe_index import Index
 from classe_portefeuille import Portefeuille
 import pandas as pd
+import pickle
+import os
+
+# Fonctions de sauvegarde et chargement du portefeuille
+def save_portefeuille_to_file(portefeuille, filename="portefeuille.pkl"):
+    with open(filename, "wb") as f:
+        pickle.dump(portefeuille, f)
+
+def load_portefeuille_from_file(filename="portefeuille.pkl"):
+    if os.path.exists(filename):
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+    return None
 
 # Initialisation du portefeuille dans la session
 if "portefeuille" not in st.session_state or not isinstance(st.session_state.portefeuille, Portefeuille):
-    port = Portefeuille("Mon Portefeuille")
+    port = load_portefeuille_from_file()
+    if port is None:
+        port = Portefeuille("Mon Portefeuille")
     st.session_state.portefeuille = port
 
 def main():
@@ -42,13 +57,11 @@ def main():
             nom = st.text_input("Nom du portefeuille")
             if st.button("Créer") and nom:
                 st.session_state.portefeuille = Portefeuille(nom)
+                save_portefeuille_to_file(st.session_state.portefeuille)
                 st.success(f"Portefeuille '{nom}' créé ✔️")
 
-               # 3 - Ajouter / Retirer des actions
+        # 3 - Ajouter / Retirer des actions
         case "manage_port":
-            if "portefeuille" not in st.session_state or not isinstance(st.session_state.portefeuille, Portefeuille):
-                st.session_state.portefeuille = load_portefeuille_from_file()
-
             port = st.session_state.portefeuille
 
             actifs_ticker = st.text_input("Ticker de l'action")

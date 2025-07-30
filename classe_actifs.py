@@ -136,7 +136,7 @@ class Actifs:
         st.write("Statistiques descriptives:")
         st.write(data['Close'].describe().round(2))
 
-    # --- Méthode ajoutée : obtenir le prix à une date donnée
+    # obtenir le prix à une date donnée
     def get_prix_a_date(self, date: datetime):
         try:
             start = date.strftime("%Y-%m-%d")
@@ -150,7 +150,7 @@ class Actifs:
             print(f"Erreur récupération prix à date pour {self.ticker}: {e}")
             return None
 
-    # --- Méthode ajoutée : récupérer historique des prix (clôture)
+    # récupérer historique des prix (clôture)
     def get_historique_prix(self, period="1y"):
         try:
             data = yf.download(self.ticker, period=period, progress=False)
